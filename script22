@@ -1,0 +1,134 @@
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SpeechGrammarList = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+const SpeechRecognitionEvent = window.SpeechRecognitionEvent || window.webkitSpeechRecognitionEvent;
+
+if (!SpeechRecognition) {
+  document.getElementById('not-supported').style.display = 'flex';
+}
+
+const recognition = new SpeechRecognition();
+
+let total = 0;
+const node = document.getElementById('target');
+const button = document.getElementById('toggle');
+const htmlNode = document.querySelector('.display');
+
+recognition.continuous = true;
+recognition.lang = 'en-US';
+recognition.interimResults = false;
+recognition.maxAlternatives = 1;
+
+let listening = false;
+recognition.onstart = () => { listening = true };
+recognition.onend = () => { listening = false };
+
+document.getElementById('toggle').onclick = function() {
+  listening ? stop() : start();
+}
+
+function start() {
+  recognition.start();
+  button.textContent = "Stop Listening";
+  htmlNode.classList.add('listening');
+}
+
+function stop() {
+  recognition.abort();
+  button.textContent = "Start Listening";
+  htmlNode.classList.remove('listening');
+}
+
+function update(num) {
+  node.textContent = num;
+}
+
+
+const synth = window.speechSynthesis;
+function say(phrase) {
+  const utterance = new SpeechSynthesisUtterance(phrase);
+  stop();
+  button.disabled = true;
+  setTimeout(() => {
+    start();
+    button.disabled = true;
+  }, 2500);
+  console.log(`Saying: ${phrase}`);
+  synth.speak(utterance);
+}
+
+recognition.onresult = function(event) {
+  const last = event.results.length - 1;
+  const phrase = event.results[last][0].transcript;
+  
+  requestData(phrase).then((response) => {
+    console.log(response);
+    
+    const { intent, score } = response.data.intents[0] || { intent: "None" };
+    
+    if (score < .3) {
+      recognition.abort();
+      say("I'm not sure what you said.");
+      return;
+    }
+  
+    const { entities } = response.data;
+    let entity;
+    if (entities.length) {
+      entity = entities[0];
+    }
+    
+    switch (intent) {
+      case "Calculator.Add":
+        if (!entity) return;
+        total += +entity.resolution.value;
+        break;
+      case "Calculator.Subtract":
+        if (!entity) return;
+        total -= +entity.resolution.value;
+        break;
+      case "Calculator.Multiply":
+        if (!entity) return;
+        total *= +entity.resolution.value;
+        break;
+      case "Calculator.Divide":
+        if (!entity) return;
+        total /= +entity.resolution.value;
+        break;
+      case "Calculator.Reset": 
+        total = entity ? +entity.resolution.value : 0;
+        break;
+      case "App.Stop":
+        stop();
+        break;
+      case "App.Repeat":
+        say(`The current total is ${total}`);
+        break;
+      default:
+        // should never reach here
+    }
+    update(total);
+  }).catch(() => {
+    stop();
+    document.getElementById('not-available').style.display = 'flex';
+  })
+}
+
+const requestData = (query) => {
+  const uribase = `https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/fedda2e4-21c0-42b6-a693-126f126b2388`;
+
+  return axios({
+    method: "get",
+    url: uribase,
+    params: {
+      verbose: true,
+      timezoneOffset: 0,
+      q: query
+    },
+    headers: {
+      "Content-Type": "application/json",
+      "Ocp-Apim-Subscription-Key": "dac1f04f2a85466cb25bc4154692ab91"
+    }
+  });
+}
+
+update(total);

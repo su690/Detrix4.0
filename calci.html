@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Calculator</title>
+</head>
+<body>
+    <link rel="stylesheet" href="style22.css">
+<h1>Voice Calculator</h1>
+<p>Instructions: Click "Enable Voice Recognition" to start speaking. Say your math operation (e.g., "two plus two").</p>
+<input type="text" id="result" disabled>
+<button id="enableButton">Enable Voice Recognition</button>
+<script>
+const result = document.getElementById('result');
+const enableButton = document.getElementById('enableButton');
+
+let recognition;
+
+// Function to initialize speech recognition
+function initializeRecognition() {
+  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = function() {
+    console.log('Speech recognition started.');
+  };
+
+  recognition.onend = function() {
+    console.log('Speech recognition ended.');
+  };
+
+  recognition.onresult = function(event) {
+    const speechResult = event.results[0][0].transcript.toLowerCase();
+    console.log('Speech recognized:', speechResult);
+
+    try {
+      const mathExpression = speechResult
+        .replace(/plus/g, '+')
+        .replace(/minus/g, '-')
+        .replace(/times|multiplied by/g, '*')
+        .replace(/divided by/g, '/')
+        .replace(/[^-()\d/*+.]/g, '');
+      
+      const resultValue = eval(mathExpression);
+      result.value = resultValue;
+      console.log('Result:', resultValue);
+
+      // Speak the value and operation
+      const utterance = new SpeechSynthesisUtterance(`The result is ${resultValue}.`);
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.error('Error evaluating math expression:', error);
+      result.value = 'Error';
+    }
+  };
+}
+
+// Event listener for clicking the enable button
+enableButton.addEventListener('click', function() {
+  if (!recognition) {
+    initializeRecognition();
+  }
+  result.value = '';
+  recognition.start();
+});
+</script>
+</body>
+</html>

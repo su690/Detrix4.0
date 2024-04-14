@@ -1,0 +1,76 @@
+html, body {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .display {
+    width: 100vw;
+    background: #85144b;
+    color: #9CB7E2;
+    font-family: 'Supermercado One', cursive;
+    transition: .5s ease background-color;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  .explain {
+    width: 100%;
+    text-align: center;
+    color: #E8E599;
+    font-size: 20px;
+  }
+  
+  #target {
+    font-size: 100px;
+    width: 100%;
+    cursor: pointer;
+    text-align: center;
+  }
+  
+  .listening {
+    background-color: #3D9970;
+  }
+  
+  .listening #toggle {
+    background-color: #85144b;
+  }
+  
+  #toggle {
+    width: 150px;
+    height: 150px;
+    display: block;
+    margin: 0 auto;
+    border-radius: 50%;
+    background-color: #3D9970;
+    color: white;
+    font-family: 'Supermercado One', cursive;
+    font-size: 25px;
+    cursor: pointer;
+  }
+  
+  .takeover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(25, 25, 25, .9);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  a {
+    color: white;
+  }
+  
+  a:hover, a:active {
+    color: #ddd;
+  }

@@ -1,0 +1,40 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  h1 {
+    color: #333;
+  }
+  
+  p {
+    color: #666;
+    margin-bottom: 20px;
+  }
+  
+  #result {
+    width: 200px;
+    height: 40px;
+    font-size: 18px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+  }
+  
+  #enableButton {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+  
+  #enableButton:hover {
+    background-color: #45a049;
+  }
+  
