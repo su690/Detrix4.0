@@ -1,46 +1,250 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
+import React, { useState, useEffect, useContext } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { AppContext } from "../../context/AppContext";
+import { toast } from 'react-toastify';
+
+const API_BASE = "/api/v1";
+
+export default function CreateAnnouncement() {
+  const { currentUser } = useContext(AppContext);
+  const [courses, setCourses] = useState([]);
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [duration, setDuration] = useState(1); // Default 1 days
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      axios
+        .get(`${API_BASE}/courses?instructorId=${currentUser.id}`)
+        .then((res) => setCourses(res.data.courses || res.data))
+        .catch((err) => console.error("Error fetching courses:", err));
+    }
+  }, [currentUser]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title || !message || !courseId) {
+      toast.error("Please provide a title, message, and select a course.");
+      return;
+    }
+
+    const newAnnouncement = {
+      id: Date.now().toString(),
+      title,
+      message,
+      courseId,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString(),
+      created_by: currentUser.id,
+    };
+
+    try {
+      await axios.post(`${API_BASE}/announcements`, newAnnouncement);
+      toast.success("Announcement created successfully!");
+      navigate("/instructor-dashboard");
+    } catch (err) {
+      console.error("Error creating announcement:", err);
+      toast.error("Failed to create announcement");
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-2xl mx-auto bg-white shadow-md rounded-lg">
+      <h1 className="text-2xl font-bold mb-4">Create New Announcement</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label className="block font-medium">Announcement Title</label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full border rounded p-2"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium">Message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="w-full border rounded p-2"
+            rows={5}
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium">Select Course</label>
+          <select
+            value={courseId}
+            onChange={(e) => setCourseId(e.target.value)}
+            className="w-full border rounded p-2"
+            required
+          >
+            <option value="">-- Select a course --</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block font-medium">Duration (days)</label>
+          <input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+            className="w-full border rounded p-2"
+            min="1"
+            max="30"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Create Announcement
+        </button>
+      </form>
+    </div>
+  );
 }
 
-header {
-  background: linear-gradient(to right, #4b6cb7, #182848);
-  color: #fff;
-  text-align: center;
-  padding: 20px;
-}
 
-h1 {
-  margin: 0;
-}
 
-main {
-  padding: 20px;
-}
+Student Announsment
 
-section {
-  margin-bottom: 30px;
-}
+            import React, { useEffect, useState, useContext } from "react";
+import { AppContext } from "../context/AppContext";
+import { useAppContext } from "../context/AppContext";
 
-h2 {
-  color: #4b6cb7;
-}
+const Announcements = () => {
+  const { currentUser, setAnnouncementCount } = useAppContext();
+  const [announcements, setAnnouncements] = useState([]);
+  const [enrolledCourses, setEnrolledCourses] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [readAnnouncements, setReadAnnouncements] = useState(new Set());
 
-.team-member {
-  display: flex;
-  align-items: center;
-}
+  const markAsRead = (announcementId) => {
+    const newRead = new Set(readAnnouncements);
+    newRead.add(announcementId);
+    setReadAnnouncements(newRead);
+    localStorage.setItem(`readAnnouncements_${currentUser?.id}`, JSON.stringify([...newRead]));
+    // Update the global announcement count
+    setAnnouncementCount(prev => Math.max(0, prev - 1));
+  };
 
-.team-member img {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  margin-right: 20px;
-}
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      if (currentUser?.id) {
+        try {
+          const response = await fetch(`/api/v1/enrollments?userId=${currentUser.id}`);
+          const data = await response.json();
+          const enrolledCourseIds = data.map(e => e.course_id);
+          setEnrolledCourses(enrolledCourseIds);
+        } catch (error) {
+          console.error('Failed to fetch enrollments:', error);
+        }
+      }
+    };
 
-footer {
-  background: #f4f4f4;
-  padding: 10px 20px;
-  text-align: center;
-}
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/api/v1/courses');
+        const data = await response.json();
+        const allCourses = data.courses || data;
+        setCourses(allCourses);
+      } catch (error) {
+        console.error('Failed to fetch courses:', error);
+      }
+    };
+
+    // Load read announcements from localStorage
+    const storedRead = localStorage.getItem(`readAnnouncements_${currentUser?.id}`);
+    if (storedRead) {
+      setReadAnnouncements(new Set(JSON.parse(storedRead)));
+    }
+
+    fetchEnrollments();
+    fetchCourses();
+  }, [currentUser]);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const response = await fetch('/api/v1/announcements');
+        const data = await response.json();
+        const allAnnouncements = data.announcements || data;
+        // Filter announcements based on enrolled courses and expiration
+        const filteredAnnouncements = allAnnouncements.filter(announcement =>
+          enrolledCourses.includes(announcement.courseId) &&
+          new Date(announcement.expires_at) > new Date()
+        );
+        setAnnouncements(filteredAnnouncements.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+      } catch (error) {
+        console.error('Failed to fetch announcements:', error);
+      }
+    };
+
+    if (enrolledCourses.length > 0) {
+      fetchAnnouncements();
+    }
+  }, [enrolledCourses]);
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-3xl font-bold text-gray-800 mb-6">Announcements</h2>
+      {announcements.length > 0 ? (
+        <div className="space-y-4">
+          {announcements.map((announcement) => {
+            const course = courses.find(c => String(c.id) === String(announcement.courseId));
+            const isRead = readAnnouncements.has(announcement.id);
+            return (
+              <div key={announcement.id} className={`p-4 bg-white rounded-lg shadow border ${isRead ? 'opacity-75' : ''}`}>
+                <div className="flex justify-between items-start">
+                  <h3 className={`font-semibold ${isRead ? 'text-gray-600' : 'text-gray-900'}`}>{announcement.title}</h3>
+                  {!isRead && (
+                    <button
+                      onClick={() => markAsRead(announcement.id)}
+                      className="text-xs bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                    >
+                      Mark as Read
+                    </button>
+                  )}
+                </div>
+                <p className={`text-sm mt-1 ${isRead ? 'text-gray-600' : 'text-gray-800'}`}>{announcement.message}</p>
+                {course && (
+                  <p className="text-sm text-blue-600 mt-1">Course: {course.title}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
+                  Created: {new Date(announcement.created_at).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Expires: {new Date(announcement.expires_at).toLocaleString()}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">📢</div>
+          <p className="text-gray-500 text-lg">No announcements yet.</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Announcements for your enrolled courses will appear here.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Announcements;
